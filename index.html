@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>PNG Auto Crop</title>
+  <link href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Pretendard', 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #f6f5f9, #ffffff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      color: #3a2f4d;
+      max-width: 720px;
+      margin: auto;
+    }
+    h1 { font-size: 28px; font-weight: 700; color: #4a3f63; margin-bottom: 8px; text-align: center; }
+    p.subtitle { color: #555; margin-bottom: 28px; font-size: 15px; text-align: center; line-height: 1.6; }
+    .upload-box {
+      width: 100%; padding: 20px; border: 2px dashed #c2bfd0; border-radius: 12px;
+      background: #fff; cursor: pointer; font-size: 14px; color: #3a2f4d; text-align: center;
+      transition: all 0.2s ease;
+    }
+    .upload-box:hover { background: #faf9fc; border-color: #a084ca; }
+    input[type=file] { display: none; }
+    .btn {
+      padding: 12px 30px; margin-top: 18px; background: #a084ca; color: #fff;
+      border: none; border-radius: 25px; cursor: pointer; font-size: 15px; font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { background: #8c6fc7; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    #preview {
+      margin-top: 32px; width: 100%; text-align: center; border: 1px solid #e2e2e2;
+      padding: 18px; background: #fff; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    #thumbs {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px; margin-top: 20px; width: 100%;
+    }
+    #thumbs img {
+      width: 120px; height: 120px; object-fit: contain;
+      border: 1px solid #ccc; border-radius: 8px; background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    #loading { margin-top: 20px; font-size: 15px; color: #6c5b7b; display: none; font-weight: 600; }
+    #loading .scissors { display: inline-block; animation: cut 1s infinite; }
+    @keyframes cut {
+      0% { transform: rotate(0deg); } 25% { transform: rotate(-20deg); }
+      50% { transform: rotate(0deg); } 75% { transform: rotate(20deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .ads { margin: 20px 0; width: 100%; text-align: center; display: none; }
+  </style>
+</head>
+<body>
+  <h1>PNG Auto Crop</h1>
+  <p class="subtitle">
+    One-click PNG cropping. Say goodbye to empty transparent space.<br>
+    클릭 한 번으로 PNG 여백 제거
+  </p>
+
+  <div style="margin: 24px 0; text-align:left; max-width:600px; font-size:14px; line-height:1.6; color:#444;">
+    <h3 style="color:#6c5b7b; margin-bottom:8px;">✨ 사용 방법 | How it works</h3>
+    <ol style="padding-left:20px; margin-top:6px; margin-bottom:12px;">
+      <li>PNG 파일 업로드 (최대 3장) | Upload up to 3 PNGs</li>
+      <li>크롭 버튼 누르기 (Click the Crop button)</li>
+      <li>ZIP 파일 다운로드 (Download the results)</li>
+    </ol>
+    <p style="font-size:13px; color:#888; margin-top:8px;">
+      ⚠️ 투명한 배경을 가진 PNG만 크롭할 수 있습니다.<br>
+      Only PNGs with transparent backgrounds are supported.
+    </p>
+  </div>
+
+  <div class="ads">
+    <p style="color:#888; font-size:13px;">(Ad space placeholder)</p>
+  </div>
+
+  <label for="file" class="upload-box">
+    PNG 파일을 선택하거나 드래그하세요<br>
+    <span style="font-size:13px; color:#888;">Select or Drag & Drop PNG (Up to 3)</span>
+  </label>
+  <input type="file" id="file" accept="image/png" multiple>
+
+  <div id="thumbs"></div>
+
+  <button class="btn" onclick="upload()"> 크롭 | Crop</button>
+
+  <div id="loading">
+    <span class="scissors">✂️</span> 작업 중... / Processing...
+  </div>
+
+  <div id="preview"></div>
+
+  <script>
+    // 썸네일 & 3개 제한
+    document.getElementById('file').addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files.length > 3) {
+        alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다." + "\n" + "Maximum 3 PNGs allowed.");
+        e.target.value = "";
+        document.getElementById('thumbs').innerHTML = "";
+        return;
+      }
+      const thumbs = document.getElementById('thumbs');
+      thumbs.innerHTML = "";
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = document.createElement("img");
+          img.src = ev.target.result;
+          thumbs.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    async function upload() {
+      const fileInput = document.getElementById('file');
+      if (!fileInput.files.length) {
+        alert("PNG 파일을 선택해주세요 / Please select PNG files!");
+        return;
+      }
+      const loading = document.getElementById('loading');
+      const preview = document.getElementById('preview');
+      loading.style.display = "block";
+      preview.innerHTML = "";
+
+      const formData = new FormData();
+      for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append("files", fileInput.files[i]);
+      }
+
+      try {
+        const res = await fetch("/crop", { method: "POST", body: formData });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+
+        loading.style.display = "none";
+        preview.innerHTML = `
+          <h3 style="color:#6c5b7b; font-weight:600;">결과 ZIP 다운로드 / Download ZIP</h3>
+          <a href="${url}" download="cropped_images.zip">
+            <button class="btn" style="margin-top:14px;">⬇️ ZIP 다운로드 / Download ZIP</button>
+          </a>
+        `;
+      } catch (err) {
+        loading.style.display = "none";
+        alert("오류 발생: " + err.message + "\\nError occurred.");
+      }
+    }
+  </script>
+</body>
+</html>
