@@ -19,7 +19,6 @@
     h1 { font-size: 28px; font-weight: 700; color: #4a3f63; margin-bottom: 8px; text-align: center; }
     p.subtitle { color: #555; margin-bottom: 28px; font-size: 15px; text-align: center; line-height: 1.6; }
 
-    /* 업로드 박스 */
     .upload-box {
       width: 100%; padding: 20px; border: 2px dashed #c2bfd0; border-radius: 12px;
       background: #fff; cursor: pointer; font-size: 14px; color: #3a2f4d; text-align: center;
@@ -28,7 +27,6 @@
     .upload-box:hover { background: #faf9fc; border-color: #a084ca; }
     input[type=file] { display: none; }
 
-    /* 버튼 */
     .btn {
       padding: 12px 30px; margin-top: 18px; background: #a084ca; color: #fff;
       border: none; border-radius: 25px; cursor: pointer; font-size: 15px; font-weight: 600;
@@ -36,37 +34,27 @@
     }
     .btn:hover { background: #8c6fc7; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 
-    /* 결과 전체 */
     #preview {
       margin-top: 32px; width: 100%; text-align: center; border: 1px solid #e2e2e2;
       padding: 18px; background: #fff; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
-    /* 썸네일 영역 */
     #thumbs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 20px;
-      width: 100%;
+      display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; width: 100%;
     }
     #thumbs div { position: relative; display: inline-block; text-align: center; }
     #thumbs img {
       width: 120px; height: 120px; object-fit: contain;
       border: 1px solid #ccc; border-radius: 8px; background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08); cursor: pointer;
     }
     #thumbs button {
-      position: absolute;
-      top: 6px; right: 6px;
-      background: none; border: none;
+      position: absolute; top: 6px; right: 6px; background: none; border: none;
       color: #333; font-size: 20px; font-weight: 300;
       cursor: pointer; line-height: 1; padding: 0;
-      transition: color 0.2s ease;
     }
     #thumbs button:hover { color: #000; }
 
-    /* 로딩 */
     #loading { margin-top: 20px; font-size: 15px; color: #6c5b7b; display: none; font-weight: 600; }
     #loading .scissors { display: inline-block; animation: cut 1s infinite; }
     @keyframes cut {
@@ -75,7 +63,6 @@
       100% { transform: rotate(0deg); }
     }
 
-    /* 광고 영역 */
     .ads { margin: 20px 0; width: 100%; text-align: center; display: none; }
   </style>
 </head>
@@ -86,26 +73,7 @@
     클릭 한 번으로 PNG 여백 제거
   </p>
 
-  <!-- 사용 방법 안내 -->
-  <div style="margin: 24px 0; text-align:left; max-width:600px; font-size:14px; line-height:1.6; color:#444;">
-    <h3 style="color:#6c5b7b; margin-bottom:8px;">✨ 사용 방법 | How it works</h3>
-    <ol style="padding-left:20px; margin-top:6px; margin-bottom:12px;">
-      <li>PNG 파일 업로드 (최대 3장) | Upload up to 3 PNGs</li>
-      <li>크롭 버튼 누르기 (Click the Crop button)</li>
-      <li>ZIP 파일 다운로드 (Download the results)</li>
-    </ol>
-    <p style="font-size:13px; color:#888; margin-top:8px;">
-      ⚠️ 투명한 배경을 가진 PNG만 크롭할 수 있습니다.<br>
-      Only PNGs with transparent backgrounds are supported.
-    </p>
-  </div>
-
-  <!-- 광고 자리 -->
-  <div class="ads">
-    <p style="color:#888; font-size:13px;">(Ad space placeholder)</p>
-  </div>
-
-  <!-- 업로드 박스 -->
+  <!-- 업로드 -->
   <label for="file" class="upload-box">
     PNG 파일을 선택하거나 드래그하세요<br>
     <span style="font-size:13px; color:#888;">Select or Drag & Drop PNG (Up to 3)</span>
@@ -119,56 +87,57 @@
   <button class="btn" onclick="upload()"> 크롭 | Crop</button>
 
   <!-- 로딩 -->
-  <div id="loading">
-    <span class="scissors">✂️</span> 작업 중... / Processing...
-  </div>
+  <div id="loading"><span class="scissors">✂️</span> 작업 중... / Processing...</div>
 
   <!-- 결과 -->
   <div id="preview"></div>
 
   <script>
+    const API_BASE = "https://loopyti-loopyti-crop-tool.hf.space/crop";
     let selectedFiles = [];
 
-    // 파일 선택 이벤트
-    document.getElementById('file').addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      if (files.length > 3) {
-        alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다.\nMaximum 3 PNGs allowed.");
-        e.target.value = "";
-        selectedFiles = [];
-        document.getElementById('thumbs').innerHTML = "";
-        return;
+    // 파일 업로드
+    document.getElementById("file").addEventListener("change", (e) => {
+      const newFiles = Array.from(e.target.files);
+
+      for (const f of newFiles) {
+        if (f.type !== "image/png") {
+          alert("⚠️ PNG 파일만 업로드할 수 있습니다.");
+          e.target.value = "";
+          return;
+        }
       }
-      selectedFiles = files;
+
+      selectedFiles = [...selectedFiles, ...newFiles];
+      if (selectedFiles.length > 3) {
+        alert("⚠️ 최대 3개의 PNG만 업로드할 수 있습니다.");
+        selectedFiles = selectedFiles.slice(0, 3);
+      }
+
       renderThumbnails();
+      e.target.value = "";
     });
 
     // 썸네일 렌더링
     function renderThumbnails() {
-      const thumbs = document.getElementById('thumbs');
+      const thumbs = document.getElementById("thumbs");
       thumbs.innerHTML = "";
       selectedFiles.forEach((file, index) => {
-        if (file.type !== "image/png") {
-          alert("⚠️ PNG 파일만 업로드할 수 있습니다.\nOnly PNG files are allowed.");
-          return;
-        }
         const reader = new FileReader();
         reader.onload = (ev) => {
           const wrapper = document.createElement("div");
+
           const img = document.createElement("img");
           img.src = ev.target.result;
+          img.onclick = () => window.open(img.src, "_blank");
 
           const delBtn = document.createElement("button");
           delBtn.textContent = "✖";
-          delBtn.onclick = () => {
-            selectedFiles.splice(index, 1);
-            renderThumbnails();
-          };
+          delBtn.onclick = () => { selectedFiles.splice(index, 1); renderThumbnails(); };
 
-          // 결과 미리보기/다운로드 자리
           const resultDiv = document.createElement("div");
           resultDiv.id = "result_" + index;
-          resultDiv.style.marginTop = "8px";
+          resultDiv.style.marginTop = "6px";
 
           wrapper.appendChild(img);
           wrapper.appendChild(delBtn);
@@ -179,81 +148,99 @@
       });
     }
 
-    // 업로드 + 크롭 요청
+    // 업로드 & 크롭
     async function upload() {
       if (!selectedFiles.length) {
-        alert("⚠️ PNG 파일을 선택해주세요.\nPlease select PNG files!");
+        alert("⚠️ PNG 파일을 선택해주세요.");
         return;
       }
-
-      const loading = document.getElementById('loading');
-      const preview = document.getElementById('preview');
+      const loading = document.getElementById("loading");
+      const preview = document.getElementById("preview");
       loading.style.display = "block";
       preview.innerHTML = "";
 
-      const formData = new FormData();
-      selectedFiles.forEach((file) => formData.append("files", file));
-
+      // ZIP 요청
+      const formDataZip = new FormData();
+      selectedFiles.forEach(f => formDataZip.append("files", f));
       try {
-        // ZIP 다운로드 요청
-        const res = await fetch("https://loopyti-loopyti-crop-tool.hf.space/crop", {
-          method: "POST",
-          body: formData,
-          mode: "cors"
-        });
-        if (!res.ok) throw new Error(await res.text());
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
+        const resZip = await fetch(API_BASE + "/zip", { method:"POST", body:formDataZip });
+        if (!resZip.ok) throw new Error(await resZip.text());
+        const blobZip = await resZip.blob();
+        const urlZip = URL.createObjectURL(blobZip);
 
-        loading.style.display = "none";
         preview.innerHTML = `
-          <h3 style="color:#6c5b7b; font-weight:600;">결과 ZIP 다운로드 / Download ZIP</h3>
-          <a href="${url}" download="cropped_images.zip">
-            <button class="btn" style="margin-top:14px;">⬇️ ZIP 다운로드</button>
-          </a>
+          <div style="margin-bottom:20px; text-align:center;">
+            <h3 style="color:#6c5b7b; font-weight:600;">전체 ZIP 다운로드</h3>
+            <a href="${urlZip}" download="cropped_images.zip">
+              <button class="btn" style="margin-top:10px;">⬇️ ZIP 다운로드</button>
+            </a>
+          </div>
         `;
-
-        // 각 파일별 개별 요청 → 결과 미리보기 + 다운로드 버튼
-        selectedFiles.forEach(async (file, index) => {
-          if (file.type !== "image/png") return;
-          const fd = new FormData();
-          fd.append("files", file);
-          try {
-            const r = await fetch("https://loopyti-loopyti-crop-tool.hf.space/crop", { method: "POST", body: fd, mode: "cors" });
-            if (!r.ok) throw new Error(await r.text());
-            const b = await r.blob();
-            const u = URL.createObjectURL(b);
-
-            const croppedImg = document.createElement("img");
-            croppedImg.src = u;
-            croppedImg.style.width = "120px";
-            croppedImg.style.marginTop = "6px";
-            croppedImg.style.display = "block";
-            croppedImg.style.border = "1px solid #ccc";
-            croppedImg.style.borderRadius = "6px";
-
-            const link = document.createElement("a");
-            link.href = u;
-            link.download = "cropped_" + file.name;
-            link.textContent = "⬇️ 개별 PNG 다운로드 / Individual PNG Download";
-            link.className = "btn";
-            link.style.display = "inline-block";
-            link.style.marginTop = "6px";
-
-            const target = document.getElementById("result_" + index);
-            target.innerHTML = "";
-            target.appendChild(croppedImg);
-            target.appendChild(link);
-
-          } catch (err) {
-            console.error(err);
-          }
-        });
-
-      } catch (err) {
-        loading.style.display = "none";
-        alert(err.message);
+      } catch(err) {
+        preview.innerHTML = `<p style="color:red;">ZIP 오류: ${err.message}</p>`;
       }
+
+      // 개별 PNG 요청
+      selectedFiles.forEach(async (file, index) => {
+        const fd = new FormData();
+        fd.append("file", file);
+        try {
+          const res = await fetch(API_BASE + "/png", { method:"POST", body:fd });
+          if (!res.ok) throw new Error(await res.text());
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+
+          const target = document.getElementById("result_" + index);
+          target.innerHTML = "";
+
+          const croppedImg = document.createElement("img");
+          croppedImg.src = url;
+          croppedImg.style.width = "120px";
+          croppedImg.style.cursor = "pointer";
+          croppedImg.style.border = "1px solid #ccc";
+          croppedImg.style.borderRadius = "6px";
+          croppedImg.onclick = () => {
+            const modal = document.createElement("div");
+            modal.style.position = "fixed";
+            modal.style.top = "0"; modal.style.left = "0";
+            modal.style.width = "100%"; modal.style.height = "100%";
+            modal.style.background = "rgba(0,0,0,0.7)";
+            modal.style.display = "flex";
+            modal.style.alignItems = "center";
+            modal.style.justifyContent = "center";
+            modal.onclick = () => modal.remove();
+
+            const bigImg = document.createElement("img");
+            bigImg.src = url;
+            bigImg.style.maxWidth = "90%";
+            bigImg.style.maxHeight = "90%";
+            bigImg.style.border = "4px solid white";
+            bigImg.style.borderRadius = "10px";
+
+            modal.appendChild(bigImg);
+            document.body.appendChild(modal);
+          };
+
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "cropped_" + file.name;
+
+          const dlBtn = document.createElement("button");
+          dlBtn.textContent = "⬇️ 개별 PNG 다운로드";
+          dlBtn.className = "btn";
+          dlBtn.style.marginTop = "6px";
+
+          link.appendChild(dlBtn);
+
+          target.appendChild(croppedImg);
+          target.appendChild(link);
+        } catch(err) {
+          document.getElementById("result_" + index).innerHTML =
+            `<p style="color:red;">PNG 오류: ${err.message}</p>`;
+        }
+      });
+
+      loading.style.display = "none";
     }
   </script>
 </body>
