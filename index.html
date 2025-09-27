@@ -36,13 +36,32 @@
       padding: 18px; background: #fff; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
     #thumbs {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px; margin-top: 20px; width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+      width: 100%;
+    }
+    #thumbs div {
+      position: relative;
+      display: inline-block;
     }
     #thumbs img {
       width: 120px; height: 120px; object-fit: contain;
       border: 1px solid #ccc; border-radius: 8px; background: #fff;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    #thumbs button {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 2px 6px;
+      font-size: 12px;
     }
     #loading { margin-top: 20px; font-size: 15px; color: #6c5b7b; display: none; font-weight: 600; }
     #loading .scissors { display: inline-block; animation: cut 1s infinite; }
@@ -61,6 +80,7 @@
     클릭 한 번으로 PNG 여백 제거
   </p>
 
+  <!-- 사용방법 안내 -->
   <div style="margin: 24px 0; text-align:left; max-width:600px; font-size:14px; line-height:1.6; color:#444;">
     <h3 style="color:#6c5b7b; margin-bottom:8px;">✨ 사용 방법 | How it works</h3>
     <ol style="padding-left:20px; margin-top:6px; margin-bottom:12px;">
@@ -74,68 +94,102 @@
     </p>
   </div>
 
+  <!-- 광고 영역 -->
   <div class="ads">
     <p style="color:#888; font-size:13px;">(Ad space placeholder)</p>
   </div>
 
+  <!-- 파일 업로드 UI -->
   <label for="file" class="upload-box">
     PNG 파일을 선택하거나 드래그하세요<br>
     <span style="font-size:13px; color:#888;">Select or Drag & Drop PNG (Up to 3)</span>
   </label>
   <input type="file" id="file" accept="image/png" multiple>
 
+  <!-- 썸네일 미리보기 -->
   <div id="thumbs"></div>
 
+  <!-- 크롭 버튼 -->
   <button class="btn" onclick="upload()"> 크롭 | Crop</button>
 
+  <!-- 로딩 표시 -->
   <div id="loading">
     <span class="scissors">✂️</span> 작업 중... / Processing...
   </div>
 
+  <!-- 결과 다운로드 영역 -->
   <div id="preview"></div>
 
   <script>
-    // 썸네일 & 3개 제한
+    let selectedFiles = []; // 업로드한 파일들을 담는 배열
+
+    // 파일 선택 이벤트
     document.getElementById('file').addEventListener('change', (e) => {
-      const files = e.target.files;
+      const files = Array.from(e.target.files);
+
       if (files.length > 3) {
-        alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다." + "\n" + "Maximum 3 PNGs allowed.");
+        alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다.\nMaximum 3 PNGs allowed.");
         e.target.value = "";
+        selectedFiles = [];
         document.getElementById('thumbs').innerHTML = "";
         return;
       }
-      const thumbs = document.getElementById('thumbs');
-      thumbs.innerHTML = "";
-      for (const file of files) {
-        if (!file.type.startsWith("image/")) continue;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const img = document.createElement("img");
-          img.src = ev.target.result;
-          thumbs.appendChild(img);
-        };
-        reader.readAsDataURL(file);
-      }
+
+      selectedFiles = files; // 선택된 파일 배열에 저장
+      renderThumbnails();
     });
 
+    // 썸네일 + ❌ 버튼 렌더링
+    function renderThumbnails() {
+      const thumbs = document.getElementById('thumbs');
+      thumbs.innerHTML = "";
+
+      selectedFiles.forEach((file, index) => {
+        if (!file.type.startsWith("image/")) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const wrapper = document.createElement("div");
+
+          const img = document.createElement("img");
+          img.src = ev.target.result;
+
+          // 삭제 버튼
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "❌";
+          delBtn.onclick = () => {
+            selectedFiles.splice(index, 1); // 배열에서 제거
+            renderThumbnails(); // 다시 렌더링
+          };
+
+          wrapper.appendChild(img);
+          wrapper.appendChild(delBtn);
+          thumbs.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 업로드 → Hugging Face API 호출
     async function upload() {
-      const fileInput = document.getElementById('file');
-      if (!fileInput.files.length) {
+      if (!selectedFiles.length) {
         alert("PNG 파일을 선택해주세요 / Please select PNG files!");
         return;
       }
+
       const loading = document.getElementById('loading');
       const preview = document.getElementById('preview');
       loading.style.display = "block";
       preview.innerHTML = "";
 
       const formData = new FormData();
-      for (let i = 0; i < fileInput.files.length; i++) {
-        formData.append("files", fileInput.files[i]);
-      }
+      selectedFiles.forEach((file) => formData.append("files", file));
 
       try {
-        const res = await fetch("https://loopyti-loopyti-crop-tool.hf.space/crop", { method: "POST", body: formData });
+        const res = await fetch("https://loopyti-loopyti-crop-tool.hf.space/crop", {
+          method: "POST",
+          body: formData
+        });
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
 
