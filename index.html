@@ -31,16 +31,8 @@
       transition: all 0.2s ease;
     }
     .btn:hover { background: #8c6fc7; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    #preview {
-      margin-top: 32px; width: 100%; text-align: center; border: 1px solid #e2e2e2;
-      padding: 18px; background: #fff; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
     #thumbs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 20px;
-      width: 100%;
+      display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; width: 100%;
     }
     #thumbs div { position: relative; display: inline-block; }
     #thumbs img {
@@ -49,21 +41,13 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
     #thumbs button {
-      position: absolute;
-      top: 6px; right: 6px;
+      position: absolute; top: 6px; right: 6px;
       background: none; border: none;
       color: #333; font-size: 20px; font-weight: 300;
-      cursor: pointer; line-height: 1; padding: 0;
-      transition: color 0.2s ease;
+      cursor: pointer; line-height: 1; padding: 0; transition: color 0.2s ease;
     }
     #thumbs button:hover { color: #000; }
     #loading { margin-top: 20px; font-size: 15px; color: #6c5b7b; display: none; font-weight: 600; }
-    #loading .scissors { display: inline-block; animation: cut 1s infinite; }
-    @keyframes cut {
-      0% { transform: rotate(0deg); } 25% { transform: rotate(-20deg); }
-      50% { transform: rotate(0deg); } 75% { transform: rotate(20deg); }
-      100% { transform: rotate(0deg); }
-    }
   </style>
 </head>
 <body>
@@ -84,32 +68,16 @@
   <div id="thumbs"></div>
 
   <!-- 크롭 버튼 -->
-  <button class="btn" onclick="upload()"> 크롭 | Crop</button>
+  <button class="btn" onclick="uploadAll()"> 크롭 | Crop</button>
 
   <!-- 로딩 -->
-  <div id="loading">
-    <span class="scissors">✂️</span> 작업 중... / Processing...
-  </div>
-
-  <!-- 결과 -->
-  <div id="preview"></div>
+  <div id="loading">✂️ 작업 중... / Processing...</div>
 
   <script>
     let selectedFiles = [];
 
     document.getElementById('file').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
-
-    // PNG만 허용
-    for (const file of files) {
-      if (file.type !== "image/png") {
-        alert("⚠️ PNG 파일만 업로드할 수 있습니다.\nOnly PNG files are allowed.");
-        e.target.value = "";
-        selectedFiles = [];
-        document.getElementById('thumbs').innerHTML = "";
-        return;
-      }
-    }
       if (files.length > 3) {
         alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다.\nMaximum 3 PNGs allowed.");
         e.target.value = "";
@@ -125,7 +93,6 @@
       const thumbs = document.getElementById('thumbs');
       thumbs.innerHTML = "";
       selectedFiles.forEach((file, index) => {
-        if (!file.type.startsWith("image/")) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
           const wrapper = document.createElement("div");
@@ -147,45 +114,48 @@
       });
     }
 
-    async function upload() {
+    async function uploadAll() {
       if (!selectedFiles.length) {
         alert("⚠️ PNG 파일을 선택해주세요.\nPlease select PNG files!");
         return;
       }
 
       const loading = document.getElementById('loading');
-      const preview = document.getElementById('preview');
       loading.style.display = "block";
-      preview.innerHTML = "";
 
-      const formData = new FormData();
-      selectedFiles.forEach((file) => formData.append("files", file));
+      for (const file of selectedFiles) {
+        const formData = new FormData();
+        formData.append("file", file);  // 👉 추가: 파일당 하나씩 요청
 
-      try {
-        const res = await fetch("https://loopyti-loopyti-crop-tool.hf.space/crop", {
-          method: "POST",
-          body: formData
-        });
+        try {
+          const res = await fetch("https://loopyti-loopyti-crop-tool.hf.space/crop", {
+            method: "POST",
+            body: formData
+          });
 
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text);
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text);
+          }
+
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+
+          // 👉 추가: 개별 다운로드 버튼 생성
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "cropped_" + file.name;
+          link.textContent = "⬇️ " + link.download;
+          link.style.display = "block";
+          link.style.marginTop = "10px";
+          document.body.appendChild(link);
+
+        } catch (err) {
+          alert(err.message);
         }
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-
-        loading.style.display = "none";
-        preview.innerHTML = `
-          <h3 style="color:#6c5b7b; font-weight:600;">결과 ZIP 다운로드 / Download ZIP</h3>
-          <a href="${url}" download="cropped_images.zip">
-            <button class="btn" style="margin-top:14px;">⬇️ ZIP 다운로드</button>
-          </a>
-        `;
-      } catch (err) {
-        loading.style.display = "none";
-        alert(err.message);
       }
+
+      loading.style.display = "none";
     }
   </script>
 </body>
