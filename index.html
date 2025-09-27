@@ -42,7 +42,7 @@
       margin-top: 20px;
       width: 100%;
     }
-    #thumbs div { position: relative; display: inline-block; text-align:center; }
+    #thumbs div { position: relative; display: inline-block; }
     #thumbs img {
       width: 120px; height: 120px; object-fit: contain;
       border: 1px solid #ccc; border-radius: 8px; background: #fff;
@@ -97,7 +97,6 @@
   <script>
     let selectedFiles = [];
 
-    // 파일 선택 이벤트
     document.getElementById('file').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       if (files.length > 3) {
@@ -108,10 +107,9 @@
         return;
       }
       selectedFiles = files;
-      renderThumbnails(); // 썸네일 표시
+      renderThumbnails();
     });
 
-    // 썸네일 미리보기
     function renderThumbnails() {
       const thumbs = document.getElementById('thumbs');
       thumbs.innerHTML = "";
@@ -133,7 +131,7 @@
           wrapper.appendChild(img);
           wrapper.appendChild(delBtn);
 
-          // 👉 추가: 개별 PNG 다운로드 버튼을 붙일 자리 (나중에 upload()에서 채워짐)
+          // 👉 추가: 개별 PNG 다운로드 버튼 자리
           const indivBtn = document.createElement("div");
           indivBtn.id = "indiv_" + index;
           indivBtn.style.marginTop = "6px";
@@ -145,7 +143,6 @@
       });
     }
 
-    // 업로드 및 결과 다운로드
     async function upload() {
       if (!selectedFiles.length) {
         alert("⚠️ PNG 파일을 선택해주세요.\nPlease select PNG files!");
@@ -157,7 +154,6 @@
       loading.style.display = "block";
       preview.innerHTML = "";
 
-      // ZIP 요청 (기존 방식)
       const formData = new FormData();
       selectedFiles.forEach((file) => formData.append("files", file));
 
@@ -175,7 +171,8 @@
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
 
-        // ZIP 다운로드 버튼
+        loading.style.display = "none";
+        // ✅ 원본 ZIP 다운로드 UI는 그대로 유지
         preview.innerHTML = `
           <h3 style="color:#6c5b7b; font-weight:600;">결과 다운로드</h3>
           <a href="${url}" download="cropped_images.zip">
@@ -183,10 +180,10 @@
           </a>
         `;
 
-        // 👉 추가: 개별 PNG 요청 (파일마다 따로 서버에 보내고 결과 버튼 붙임)
+        // 👉 추가: 개별 PNG 다운로드 버튼 생성
         selectedFiles.forEach(async (file, index) => {
           const fd = new FormData();
-          fd.append("files", file); // 서버는 여러 개도 받지만, 여기서는 1개만 전달
+          fd.append("files", file); // 서버에 1개씩만 보내기
 
           try {
             const r = await fetch("https://loopyti-loopyti-crop-tool.hf.space/crop", {
@@ -197,7 +194,6 @@
             const b = await r.blob();
             const u = URL.createObjectURL(b);
 
-            // 개별 PNG 다운로드 버튼 생성
             const link = document.createElement("a");
             link.href = u;
             link.download = "cropped_" + file.name;
@@ -206,7 +202,6 @@
             link.style.display = "inline-block";
             link.style.marginTop = "8px";
 
-            // 썸네일 아래 indivBtn에 붙이기
             document.getElementById("indiv_" + index).appendChild(link);
           } catch (err) {
             console.error(err);
@@ -214,10 +209,9 @@
         });
 
       } catch (err) {
+        loading.style.display = "none";
         alert(err.message);
       }
-
-      loading.style.display = "none";
     }
   </script>
 </body>
