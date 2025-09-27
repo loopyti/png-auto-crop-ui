@@ -99,6 +99,17 @@
 
     document.getElementById('file').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
+
+    // PNG만 허용
+    for (const file of files) {
+      if (file.type !== "image/png") {
+        alert("⚠️ PNG 파일만 업로드할 수 있습니다.\nOnly PNG files are allowed.");
+        e.target.value = "";
+        selectedFiles = [];
+        document.getElementById('thumbs').innerHTML = "";
+        return;
+      }
+    }
       if (files.length > 3) {
         alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다.\nMaximum 3 PNGs allowed.");
         e.target.value = "";
