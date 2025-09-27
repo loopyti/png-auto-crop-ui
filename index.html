@@ -55,22 +55,19 @@
       position: absolute;
       top: 6px;
       right: 6px;
-      background: none;       /* 배경 없음 */
-      border: none;           /* 테두리 없음 */
-      color: #333;            /* 기본은 진회색 */
-      font-size: 20px;        /* 크기 */
-      font-weight: 300;       /* 얇은 X */
+      background: none;
+      border: none;
+      color: #333;
+      font-size: 20px;
+      font-weight: 300;
       cursor: pointer;
       line-height: 1;
       padding: 0;
       transition: color 0.2s ease;
     }
-
     #thumbs button:hover {
-      color: #000;            /* hover 시 더 진하게 */
+      color: #000;
     }
-
-    
     #loading { margin-top: 20px; font-size: 15px; color: #6c5b7b; display: none; font-weight: 600; }
     #loading .scissors { display: inline-block; animation: cut 1s infinite; }
     @keyframes cut {
@@ -102,11 +99,6 @@
     </p>
   </div>
 
-  <!-- 광고 영역 -->
-  <div class="ads">
-    <p style="color:#888; font-size:13px;">(Ad space placeholder)</p>
-  </div>
-
   <!-- 파일 업로드 UI -->
   <label for="file" class="upload-box">
     PNG 파일을 선택하거나 드래그하세요<br>
@@ -136,18 +128,18 @@
       const files = Array.from(e.target.files);
 
       if (files.length > 3) {
-        alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다.\nMaximum 3 PNGs allowed.");
+        alert("⚠️ 최대 3개의 PNG 파일만 업로드할 수 있습니다.\nOnly up to 3 PNGs allowed.");
         e.target.value = "";
         selectedFiles = [];
         document.getElementById('thumbs').innerHTML = "";
         return;
       }
 
-      selectedFiles = files; // 선택된 파일 배열에 저장
+      selectedFiles = files;
       renderThumbnails();
     });
 
-    // 썸네일 + ❌ 버튼 렌더링
+    // 썸네일 + 삭제 버튼
     function renderThumbnails() {
       const thumbs = document.getElementById('thumbs');
       thumbs.innerHTML = "";
@@ -162,12 +154,11 @@
           const img = document.createElement("img");
           img.src = ev.target.result;
 
-          // 삭제 버튼
           const delBtn = document.createElement("button");
-          delBtn.textContent = "x";
+          delBtn.textContent = "×"; // ❌ 대신 검정 X
           delBtn.onclick = () => {
-            selectedFiles.splice(index, 1); // 배열에서 제거
-            renderThumbnails(); // 다시 렌더링
+            selectedFiles.splice(index, 1);
+            renderThumbnails();
           };
 
           wrapper.appendChild(img);
@@ -178,10 +169,10 @@
       });
     }
 
-    // 업로드 → Hugging Face API 호출
+    // 업로드 요청
     async function upload() {
       if (!selectedFiles.length) {
-        alert("PNG 파일을 선택해주세요 / Please select PNG files!");
+        alert("⚠️ PNG 파일을 선택해주세요.\nPlease select at least one PNG file.");
         return;
       }
 
@@ -198,6 +189,14 @@
           method: "POST",
           body: formData
         });
+
+        if (!res.ok) {
+          const msg = await res.text(); // 서버 안내문 받기
+          alert(msg);                   // 사용자에게 보여주기
+          loading.style.display = "none";
+          return;
+        }
+
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
 
@@ -210,7 +209,7 @@
         `;
       } catch (err) {
         loading.style.display = "none";
-        alert("오류 발생: " + err.message + "\\nError occurred.");
+        alert("❌ 알 수 없는 오류가 발생했습니다.\nAn unknown error occurred.\n" + err.message);
       }
     }
   </script>
